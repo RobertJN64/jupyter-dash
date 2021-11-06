@@ -5,4 +5,3 @@ retrying
 ipython
 ipykernel
 ansi2html
-SingletonProcess

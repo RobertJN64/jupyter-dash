@@ -274,7 +274,6 @@ class JupyterDash(dash.Dash):
             wait_exponential_max=1000
         )
 
-        @ThreadSafeSingletonProcess
         def run():
             super_run_server(**kwargs)
 

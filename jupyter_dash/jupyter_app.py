@@ -3,13 +3,13 @@ import os
 import requests
 from flask import request
 import flask.cli
-from threading import Thread
 from retrying import retry
 import io
 import re
 import sys
 import inspect
 import warnings
+from SingletonProcess import ThreadSafeSingletonProcess
 
 from IPython import get_ipython
 from IPython.display import IFrame, display
@@ -101,7 +101,7 @@ class JupyterDash(dash.Dash):
         try:
             import jupyter_server_proxy
             self._server_proxy = True
-        except Exception:
+        except (Exception,):
             self._server_proxy = False
 
         self._traceback = None
@@ -129,15 +129,6 @@ class JupyterDash(dash.Dash):
             server_url = None
 
         self.server_url = server_url
-
-        # Register route to shut down server
-        @self.server.route('/_shutdown_' + JupyterDash._token, methods=['GET'])
-        def shutdown():
-            func = request.environ.get('werkzeug.server.shutdown')
-            if func is None:
-                raise RuntimeError('Not running with the Werkzeug Server')
-            func()
-            return 'Server shutting down...'
 
         # Register route that we can use to poll to see when server is running
         @self.server.route('/_alive_' + JupyterDash._token, methods=['GET'])
@@ -216,9 +207,6 @@ class JupyterDash(dash.Dash):
         if inline_exceptions is None:
             inline_exceptions = mode == "inline"
 
-        # Terminate any existing server using this port
-        self._terminate_server_for_port(host, port)
-
         # Configure pathname prefix
         requests_pathname_prefix = self.config.get('requests_pathname_prefix', None)
         if self._input_pathname_prefix is None:
@@ -285,12 +273,12 @@ class JupyterDash(dash.Dash):
             wait_exponential_multiplier=100,
             wait_exponential_max=1000
         )
+
+        @ThreadSafeSingletonProcess
         def run():
             super_run_server(**kwargs)
 
-        thread = Thread(target=run)
-        thread.setDaemon(True)
-        thread.start()
+        run()
 
         # Wait for server to start up
         alive_url = "http://{host}:{port}/_alive_{token}".format(
@@ -323,7 +311,8 @@ class JupyterDash(dash.Dash):
         else:
             self._display_in_jupyter(dashboard_url, port, mode, width, height)
 
-    def _display_in_colab(self, dashboard_url, port, mode, width, height):
+    @staticmethod
+    def _display_in_colab(dashboard_url, port, mode, width, height):
         from google.colab import output
         if mode == 'inline':
             output.serve_kernel_port_as_iframe(port, width=width, height=height)
@@ -332,7 +321,8 @@ class JupyterDash(dash.Dash):
             print("Dash app running on:")
             output.serve_kernel_port_as_window(port, anchor_text=dashboard_url)
 
-    def _display_in_jupyter(self, dashboard_url, port, mode, width, height):
+    @staticmethod
+    def _display_in_jupyter(dashboard_url, port, mode, width, height):
         if mode == 'inline':
             display(IFrame(dashboard_url, width, height))
         elif mode == 'external':
@@ -409,19 +399,8 @@ class JupyterDash(dash.Dash):
 
             return html_str, 500
 
-    @classmethod
-    def _terminate_server_for_port(cls, host, port):
-        shutdown_url = "http://{host}:{port}/_shutdown_{token}".format(
-            host=host, port=port, token=JupyterDash._token
-        )
-        try:
-            response = requests.get(shutdown_url)
-        except Exception as e:
-            pass
-
-
 def _custom_formatargvalues(
-        args, varargs, varkw, locals,
+        args, varargs, varkw, locals_param,
         formatarg=str,
         formatvarargs=lambda name: '*' + name,
         formatvarkw=lambda name: '**' + name,
@@ -429,16 +408,16 @@ def _custom_formatargvalues(
 
     """Copied from inspect.formatargvalues, modified to place function
     arguments on separate lines"""
-    def convert(name, locals=locals,
-                formatarg=formatarg, formatvalue=formatvalue):
-        return formatarg(name) + formatvalue(locals[name])
+    def convert(name):
+        return formatarg(name) + formatvalue(locals_param[name])
+
     specs = []
     for i in range(len(args)):
         specs.append(convert(args[i]))
     if varargs:
-        specs.append(formatvarargs(varargs) + formatvalue(locals[varargs]))
+        specs.append(formatvarargs(varargs) + formatvalue(locals_param[varargs]))
     if varkw:
-        specs.append(formatvarkw(varkw) + formatvalue(locals[varkw]))
+        specs.append(formatvarkw(varkw) + formatvalue(locals_param[varkw]))
 
     result = '(' + ', '.join(specs) + ')'
 

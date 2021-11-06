@@ -111,15 +111,15 @@ with open(os.path.join(here, 'requirements-dev.txt')) as f:
 
 
 setup(
-    name='jupyter-dash',
+    name='jupyter-dash-mp',
     version=main_ns["__version__"],
-    description="Dash support for the Jupyter notebook interface",
+    description="Fork of Jupyter Dash with multiprocessing support: Dash support for the Jupyter notebook interface",
     long_description=readme(),
     long_description_content_type="text/markdown",
-    author='Plotly',
+    author='Robert Nies',
     license="MIT",
-    url="https://github.com/plotly/jupyter-dash",
-    project_urls={"Github": "https://github.com/plotly/jupyter-dash"},
+    url="https://github.com/RobertJN64/jupyter-dash",
+    project_urls={"Github": "https://github.com/RobertJN64/jupyter-dash"},
     packages=['jupyter_dash'],
     install_requires=requirements,
     extras_require={

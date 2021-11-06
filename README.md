@@ -1,7 +1,6 @@
 # Jupyter Dash - Multiprocessing
 
-This is a fork of Jupyter Dash that uses multiprocessing instead of
-threading to keep up with the flask backend updates.
+This is a fork of Jupyter Dash that enables servers to start and stop easier.
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/plotly/jupyter-dash/master?urlpath=tree/notebooks/getting_started.ipynb)
 

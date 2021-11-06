@@ -1,7 +1,7 @@
 import dash
 import os
 import requests
-from flask import request
+from server_tools import run_server
 import flask.cli
 from retrying import retry
 import io
@@ -9,7 +9,6 @@ import re
 import sys
 import inspect
 import warnings
-from SingletonProcess import ThreadSafeSingletonProcess
 
 from IPython import get_ipython
 from IPython.display import IFrame, display
@@ -164,11 +163,11 @@ class JupyterDash(dash.Dash):
             ``Dash.run_server`` method.
         """
         # Get superclass run_server method
-        super_run_server = super(JupyterDash, self).run_server
+        super_run_server = run_server
 
         if not JupyterDash._in_ipython:
             # If not in IPython context, call run run_server synchronously
-            super_run_server(**kwargs)
+            super_run_server(self, **kwargs)
             return
 
         # Get host and port
@@ -275,7 +274,7 @@ class JupyterDash(dash.Dash):
         )
 
         def run():
-            super_run_server(**kwargs)
+            super_run_server(self, **kwargs)
 
         run()
 

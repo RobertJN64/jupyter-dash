@@ -1,7 +1,7 @@
 import dash
 import os
 import requests
-from server_tools import run_server
+from .server_tools import run_server
 import flask.cli
 from retrying import retry
 import io

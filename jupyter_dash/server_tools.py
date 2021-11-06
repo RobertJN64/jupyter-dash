@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import threading
 import os
 
-activeserver = None
+activeservers = {}
 
 def run_server(
         dashapp,
@@ -86,7 +86,7 @@ def run_server(
     :param flask_run_options: Given to `Flask.run`
     :return:
     """
-    global activeserver
+    global activeservers
     dashapp.enable_dev_tools(
         debug,
         dev_tools_ui,
@@ -162,9 +162,10 @@ def run_server(
                         extra_files.append(os.path.join(dirpath, fn))
             elif os.path.isfile(path):
                 extra_files.append(path)
-    if activeserver is not None:
-        activeserver.shutdown()
-    s = make_server(host, port, dashapp.server)
+
+    if host + ":" + str(port) in activeservers:
+        activeservers[host + ":" + str(port)].shutdown()
+    s = make_server(host, port, dashapp.server, threaded=True)
     t = threading.Thread(target=s.serve_forever)
     t.start()
-    activeserver = s
+    activeservers[host + ":" + str(port)] = s

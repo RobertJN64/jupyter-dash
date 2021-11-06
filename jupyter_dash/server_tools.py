@@ -1,5 +1,6 @@
 #THIS CODE IS MODIFIED FROM CORE DASH CODE
 from werkzeug.serving import make_server
+from werkzeug.debug import DebuggedApplication
 from urllib.parse import urlparse
 import threading
 import os
@@ -165,7 +166,10 @@ def run_server(
 
     if host + ":" + str(port) in activeservers:
         activeservers[host + ":" + str(port)].shutdown()
-    s = make_server(host, port, dashapp.server, threaded=True)
+    app = dashapp.server
+    if debug:
+        app = DebuggedApplication(app, evalex=True)
+    s = make_server(host, port, app, threaded=True)
     t = threading.Thread(target=s.serve_forever)
     t.start()
     activeservers[host + ":" + str(port)] = s
